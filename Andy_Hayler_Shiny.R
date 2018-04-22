@@ -30,7 +30,7 @@ library(XML)
 library(plyr)
 library(dplyr)
 library(shiny)
-library(kimisc)
+# library(kimisc)
 
 # x <- "https://www.andyhayler.com/restaurant-guide?size=0"
 
@@ -56,11 +56,8 @@ Tab$Rating <- as.numeric(substr(Tab$Rating, 1, 2)) - 10
 
 # Stars
 x <- Tab$Stars
-
 x <- gsub(" ", "", x)
-
 x <- gsub("\n", "", x)
-
 x <- strsplit(x, "")
 
 Tab$Stars <- sapply(x, function(x){sum(as.numeric(x))})
@@ -94,6 +91,18 @@ Tab$`Name of restaurant` <- NULL
 # 
 Tab <- Tab[complete.cases(Tab), ]
 
+# ----------------
+# Table of stars
+# ----------------
+
+Star_tab <- table(Tab$Stars)
+
+Star_plot <- ggplot(Tab, aes(Stars))+
+  geom_histogram(bins = 4, alpha= 0.75, colour = "black", fill = "red")+
+  theme_classic() +
+  xlab("Number Michelin stars")+ylab("Number of reviews")+
+  
+
 # ------
 # Plots
 # ------
@@ -101,56 +110,41 @@ Tab <- Tab[complete.cases(Tab), ]
 # Price & rating
 library(ggplot2)
 # Colours
-cbPalette <- c("#F39C12","#0000FF", "#FF00FF", "#000000") # red "#FF0000"
+#cbPalette <- c("#00C5D3", "BF003C", "#F7B100", "#34C400") # red "#FF0000"
+cbPalette <- c("#FFB600", "#0129FF", "#90FF00", "#FF006B") 
 Size <- 2
-Circle_size <- 1
+Circle_size <- 2
 Alpha <- 0.7
 Text_size <- 14
 
-# Puts one star on top
-# ggplot(Tab)+
-#   geom_point(aes(Price, Rating, color = factor(Stars), size = Size, alpha = Alpha))+
-#   geom_point(data = subset(Tab, factor(Stars) == '1'),
-#              aes(x = Price, y = Rating, color = factor(Stars), size = Size, alpha = Alpha))+
-#   theme_classic()+
-#   ggtitle("Price vs Rating by stars")+
-#   stat_smooth(data = Tab,
-#               aes(x = Price, y = Rating),
-#               se = T,  formula = y~poly(x, 2), method = "lm")+ #aes(group = 1)
-#   scale_colour_manual(values=cbPalette)+
-#   scale_y_continuous(breaks = seq(0, 10, 1))+
-#   scale_x_continuous(breaks = seq(0, max(Tab$Price), 50)) +
-#   theme(axis.title = element_text(size=Text_size),
-#         axis.text = element_text(size = Text_size)) +
-#   labs(colour = "Stars")
-
 # Price vs Rating (all)
+Price_rate <- ggplot(Tab, aes(Price, Rating, colour = factor(Stars)))
+Price_rate <- Price_rate + geom_point(size = Size, alpha = Alpha)
+Price_rate <- Price_rate + theme_classic()
+Price_rate <- Price_rate + ggtitle("Price vs Rating, grouped by star status")
+Price_rate <- Price_rate + stat_smooth(se = T,  
+                                       formula = y~poly(x, 2),
+                                       method = "lm", aes(group = 1), 
+                                       show.legend = F)
+Price_rate <- Price_rate + scale_colour_manual(values=cbPalette)
+Price_rate <- Price_rate + scale_y_continuous(breaks = seq(0, 10, 1))
+Price_rate <- Price_rate + scale_x_continuous(breaks = seq(0, max(Tab$Price), 50))
+Price_rate <- Price_rate + theme(axis.title = element_text(size=Text_size),
+                                 axis.text = element_text(size = Text_size)) 
+Price_rate <- Price_rate + labs(colour = "Stars")
+Price_rate <- Price_rate + stat_ellipse(size = Circle_size, type = "t", show.legend = F,
+                                        alpha = Alpha)
 
-# Freq_data <- as.data.frame(table(Tab$Price, Tab$Rating))
-# names(Freq_data) <- c("Price", "Rating", "Freq")
-# Freq_data <- filter(Freq_data, Freq > 0)
+# Anova analysis of stars and rating
+Star_lm <- glm(Rating~factor(Stars)+I(Price/10) -1, data = Tab)
+Star_lm <- glm(Rating~factor(Stars) -1, data = Tab)
+Star_lm <- lm(Rating~I(Price/10), data = Tab)
+summary(Star_lm)
 
-as.numeric(which(subset(Tab, Stars == 0) ))
+Stars_anova <- aov(Rating~factor(Stars)+Price, data = Tab)
+summary(Stars_anova)
+TukeyHSD(Stars_anova, "Price", ordered = TRUE)
 
-Sub_tab <- Tab[-sample(which(Tab$Stars == 0), 900), ]
-
-Price_rate <- ggplot(Sub_tab, aes(Price, Rating, colour = factor(Stars)))+
-  geom_point(size = Size, alpha = Alpha)+#, position = "jitter")+
-  theme_classic()+
-  ggtitle("Price vs Rating by stars")+
-  stat_smooth(se = T,  formula = y~poly(x, 2), method = "lm", aes(group = 1))+
-  scale_colour_manual(values=cbPalette)+
-  scale_y_continuous(breaks = seq(0, 10, 1))+
-  scale_x_continuous(breaks = seq(0, max(Tab$Price), 50)) +
-  theme(axis.title = element_text(size=Text_size),
-        axis.text = element_text(size = Text_size)) +
-  labs(colour = "Stars")+stat_ellipse(size = Circle_size, type = "t")
-
-# g <- ggplot(filter(freqData, freq > 0), aes(x = parent, y = child))
-# g <- g  + scale_size(range = c(2, 20), guide = "none" )
-# g <- g + geom_point(colour="grey50", aes(size = freq+20, show_guide = FALSE))
-# g <- g + geom_point(aes(colour=freq, size = freq))
-# g <- g + scale_colour_gradient(low = "lightblue", high="white") 
 
 # Price vs rating (split by star)
 Price_rate_split <- ggplot(Tab, aes(Price, Rating, colour = factor(Stars)))+
@@ -301,7 +295,7 @@ Rating_cuisine <- ggplot(Tab, aes(Cuisine, Rating))+
 ui <- fluidPage(
   
   # Application title
-  titlePanel("Michelin star data from AndyHayler.com"),
+  titlePanel("Restaurant review data from AndyHayler.com"),
   
   # Sidebar with a slider input for number of bins
   #    sidebarLayout(
@@ -314,27 +308,67 @@ ui <- fluidPage(
   #       ),
   #       
   # Show a plot of the generated distribution
+  
   mainPanel(
-    h2("Andy Hayler introduction text here... "),
+
+    h4(tags$div(
+      "Andy Hayler is an independent restaurant critic who has reviewed around 1500 restaurants 
+      around the world.", 
+      tags$br(),
+      tags$br(), 
+      "In five different years he ate in all restaurants in the world with three Michelin stars.
+       This is an exploration of the basic data from his reviews, including subjective rating, price, 
+      Michelin star status, location and cuisine type."
+    )), 
     
-    h4("A note on the ratings: these are the subjective ratings of Andy Hayler. 
-       He scores restaurants on a scale from 1 to 20. 
-       For some reason he changed this from 1 to 10 a while ago. This hasn't seemed to 
-       have increased the range of scores however because there are only about two 
-       reviews with less than 10/20. So I just subtracted ten from all scores and made any 
-       scores less than zero to zero.
-       The range of restaurants reviewed is generally quite varied. There are reviews of 
+    h5(tags$div(
+      "A note on the ratings: these are the subjective ratings of Andy Hayler on his most recent
+      visit to each restaurant.", 
+      tags$br(),
+      tags$br(), 
+      "He scores them on a scale from 1 to 20. Previously, he rated restaurants from 1 to 10, 
+        however this hasn't seemed to increased the range of scores because there are only about two 
+       reviews with less than 10/20. Therefore ten was subtracted from all scores and I made any 
+       scores less than zero just zero.", 
+      tags$br(),
+      tags$br(), 
+      "The range of restaurants is quite varied. There are reviews of 
        pizzerias and fish & chips alongside, say, a three-michelin star restaurant in the centre 
-       of Paris. But the criteria for review is gerally that it's an independent place 
-       with some interesting reason to 
-       It's quite rare to get a zero, and a score of 1-3 or 4 is actually pretty good because it's
-       relative to the extreme values of 
-       
-       Andy pays for the restaurants himself so there should be little bias here."),
+       of Paris. But the criteria for review is generally that it's an independent place 
+       with some interesting reason to visit such as a prior recommendation or review", 
+      tags$br(),
+      tags$br(), 
+      "However, since Andy is from London, there are many more reviews of places in England. 
+       It's quite rare that Andy marks a zero, and a score of 1-3 or 4 is actually pretty good 
+       because it's relative to the extreme and rare values of 10/10 (see table below).", 
+      tags$br(),
+      tags$br(),
+       "Andy pays for the restaurants himself so there should be little bias here.")),
+    
+    h3("Number of reviews by star"),
+    Star_tab, Star_plot,
     
     h3("Price vs rating"),
     plotOutput("Price_rate"),
     plotOutput("Price_rate_split"),
+    h3(tags$div("Note: Many of the one-star restaurants are obscured by the zero-star restaurants. 
+                The circles highlight the star rating groups and are calculated using a 
+                '95% confidence interval'", 
+                tags$br(),
+                tags$br(),
+                "Comments: Here we see an interesting 'diminishing returns' affect with 
+                Michelin star status. The subjective rating flattens out as the star status 
+                increases.", 
+                tags$br(),
+                tags$br(), 
+                "This is particularly the case with three Michelin star status - the 
+                subjective rating flattens out between two and three stars, while the 
+                price continues to increase (x-axis)", 
+                tags$br(),
+                tags$br(), 
+                "However it should be noted that there is more 'uncertainty' a the three-star level
+                (as indicated by the widening confidence interval) since they have the fewest reviews."
+                )), 
     
     h3("Price vs value"),
     plotOutput("Price_val"),
@@ -382,11 +416,54 @@ server <- function(input, output) {
 # # Run the application 
 shinyApp(ui = ui, server = server)
 
-
-
 # ------------------------------------------------------------------------------------ 
-# # PCA
+#                                         OTHER
+# ------------------------------------------------------------------------------------ 
+
+# ------------------------------------------------
+# Make size of points reflect freq of data points
+# ------------------------------------------------
+
+# Freq_data <- as.data.frame(table(Tab$Price, Tab$Rating, Tab$Stars))
+# names(Freq_data) <- c("Price", "Rating", "Stars", "Freq")
+# Freq_data <- filter(Freq_data, Freq > 0)
+
+# Sub_tab <- Tab[-sample(which(Tab$Stars == 0), 900), ]
+
+# freqData <- as.data.frame(table(galton$child, galton$parent))
+# names(freqData) <- c("child", "parent", "freq")
+# freqData$child <- as.numeric(as.character(freqData$child))
+# freqData$parent <- as.numeric(as.character(freqData$parent))
 # 
+# g <- ggplot(filter(freqData, freq > 0), aes(x = parent, y = child))
+# g <- g  + scale_size(range = c(2, 20), guide = "none" )
+# g <- g + geom_point(colour="grey50", aes(size = freq+20, show_guide = FALSE))
+# g <- g + geom_point(aes(colour=freq, size = freq))
+# g <- g + scale_colour_gradient(low = "lightblue", high="white")  
+# g
+
+# ---------------------
+# Puts one star on top
+# ---------------------
+# ggplot(Tab)+
+#   geom_point(aes(Price, Rating, color = factor(Stars), size = Size, alpha = Alpha))+
+#   geom_point(data = subset(Tab, factor(Stars) == '1'),
+#              aes(x = Price, y = Rating, color = factor(Stars), size = Size, alpha = Alpha))+
+#   theme_classic()+
+#   ggtitle("Price vs Rating by stars")+
+#   stat_smooth(data = Tab,
+#               aes(x = Price, y = Rating),
+#               se = T,  formula = y~poly(x, 2), method = "lm")+ #aes(group = 1)
+#   scale_colour_manual(values=cbPalette)+
+#   scale_y_continuous(breaks = seq(0, 10, 1))+
+#   scale_x_continuous(breaks = seq(0, max(Tab$Price), 50)) +
+#   theme(axis.title = element_text(size=Text_size),
+#         axis.text = element_text(size = Text_size)) +
+#   labs(colour = "Stars")
+
+# ----
+# PCA
+# ----
 # # library("FactoMineR")
 # # library("factoextra")
 # # 
