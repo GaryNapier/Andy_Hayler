@@ -30,6 +30,7 @@ library(XML)
 library(plyr)
 library(dplyr)
 library(shiny)
+library(ggplot2)
 # library(kimisc)
 
 # x <- "https://www.andyhayler.com/restaurant-guide?size=0"
@@ -91,24 +92,47 @@ Tab$`Name of restaurant` <- NULL
 # 
 Tab <- Tab[complete.cases(Tab), ]
 
+# Clean 'Cusine' col
+Tab$Cuisine <- ifelse(Tab$Cuisine == "Fish & Chips", "British", Tab$Cuisine)
+European <- c("Austrian", "Czech", "Danish", "Greek", "Hungarian", "Norwegian", "Russian", 
+              "Portuguese", "Swedish")
+Tab$Cuisine <- ifelse(Tab$Cuisine %in% European, "European", Tab$Cuisine)
+Asian <- c("Burmese", "Indonesian", "Korean", "Malaysian", "Singaporean", "Vietnamese")
+Tab$Cuisine <- ifelse(Tab$Cuisine %in% Asian, "Asian", Tab$Cuisine)
+Middle_eastern <- c("Lebanese", "Persian", "Tunisian", "Turkish")
+Tab$Cuisine <- ifelse(Tab$Cuisine %in% Middle_eastern, "Middle Eastern", Tab$Cuisine)
+Tab$Cuisine <- ifelse(Tab$Cuisine == "Peruvian", "South American", Tab$Cuisine)
+Tab$Cuisine <- ifelse(Tab$Cuisine == "South African", "African", Tab$Cuisine)
+
+# Clean 'Country' col
+UK <- c(" Channel Islands", " Jersey", " Man", " United Kingdom")
+Tab$Country <- ifelse(Tab$Country %in% UK, "United Kingdom", Tab$Country)
+USA <- c(" Colorado", " Colorado ", " Florida ", " Hawaii ", " Texas ", " United States")
+Tab$Country <- ifelse(Tab$Country %in% USA, "United States", Tab$Country)
+France <- c(" Loire", " France")
+Tab$Country <- ifelse(Tab$Country %in% France, "France", Tab$Country)
+
 # ----------------
 # Table of stars
 # ----------------
 
+
 Star_tab <- table(Tab$Stars)
 
-Star_plot <- ggplot(Tab, aes(Stars))+
+Star_plot <- 
+  ggplot(Tab, aes(Stars))+
   geom_histogram(bins = 4, alpha= 0.75, colour = "black", fill = "red")+
   theme_classic() +
   xlab("Number Michelin stars")+ylab("Number of reviews")+
-  
+  stat_count(aes(y=..count..,label=..count..),geom="text",vjust=-1)
+
 
 # ------
 # Plots
 # ------
-# 
+
 # Price & rating
-library(ggplot2)
+
 # Colours
 #cbPalette <- c("#00C5D3", "BF003C", "#F7B100", "#34C400") # red "#FF0000"
 cbPalette <- c("#FFB600", "#0129FF", "#90FF00", "#FF006B") 
@@ -116,6 +140,49 @@ Size <- 2
 Circle_size <- 2
 Alpha <- 0.7
 Text_size <- 14
+Size_0 <- 1
+Size_1 <- 1
+Size_2 <- 1
+Size_3 <- 1
+
+
+Star_0 <- subset(Tab, Stars == 0)
+Star_1 <- subset(Tab, Stars == 1)
+Star_2 <- subset(Tab, Stars == 2)
+Star_3 <- subset(Tab, Stars == 3)
+
+
+Price_rate <- ggplot()
+Price_rate <- Price_rate + geom_point(data = Star_0, 
+                                      aes(Price, Rating-0.2, 
+                                          colour = factor(Stars), shape = factor(Stars)),
+                                      size = Size_0, alpha = Alpha)
+Price_rate <- Price_rate + geom_point(data = Star_1, 
+                                      aes(Price, Rating+0.2, 
+                                          colour = factor(Stars), shape = factor(Stars)),
+                                      size = Size_1, alpha = Alpha)+
+  scale_shape_manual(values=c(3, 17))
+Price_rate <- Price_rate + geom_point(data = Star_2, 
+                                      aes(Price+2, Rating, 
+                                          colour = factor(Stars), shape = factor(Stars)),
+                                      size = Size_2, alpha = Alpha)
+Price_rate <- Price_rate + geom_point(data = Star_3, aes(Price-2, Rating, colour = factor(Stars)),
+                                      size = Size_3, alpha = Alpha)
+
+
+Price_rate +scale_shape_manual(values=c(3, 16, 17, 20))
+  
+
+
+# Change colors and shapes manually
+ggplot(Tab, aes(Price, y=Rating, group=factor(Stars))) +
+  geom_point(aes(shape=factor(Stars), color=factor(Stars)), size=2) +
+  scale_shape_manual(values=c(3, 16, 17))+
+  scale_color_manual(values=c('#999999','#E69F00', '#56B4E9'))+
+  theme(legend.position="top")
+
+
+
 
 # Price vs Rating (all)
 Price_rate <- ggplot(Tab, aes(Price, Rating, colour = factor(Stars)))
@@ -492,8 +559,8 @@ shinyApp(ui = ui, server = server)
 # sd(x)
 
 
-# Random changes 27/05/18
-
+date()
+# "Sun May 27 16:40:44 2018"
 
 
 
