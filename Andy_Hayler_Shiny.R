@@ -492,6 +492,8 @@ shinyApp(ui = ui, server = server)
 # sd(x)
 
 
+# Random changes 27/05/18
+
 
 
 
