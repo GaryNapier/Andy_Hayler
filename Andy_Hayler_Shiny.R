@@ -140,8 +140,8 @@ Size <- 2
 Circle_size <- 2
 Alpha <- 0.7
 Text_size <- 14
-Size_0 <- 1
-Size_1 <- 1
+Size_0 <- 4
+Size_1 <- 2.5
 Size_2 <- 1
 Size_3 <- 1
 
@@ -154,14 +154,14 @@ Star_3 <- subset(Tab, Stars == 3)
 
 Price_rate <- ggplot()
 Price_rate <- Price_rate + geom_point(data = Star_0, 
-                                      aes(Price, Rating-0.2, 
+                                      aes(Price, Rating, 
                                           colour = factor(Stars), shape = factor(Stars)),
                                       size = Size_0, alpha = Alpha)
 Price_rate <- Price_rate + geom_point(data = Star_1, 
-                                      aes(Price, Rating+0.2, 
+                                      aes(Price, Rating, 
                                           colour = factor(Stars), shape = factor(Stars)),
                                       size = Size_1, alpha = Alpha)+
-  scale_shape_manual(values=c(3, 17))
+  scale_shape_manual(values=c(1, 1))
 Price_rate <- Price_rate + geom_point(data = Star_2, 
                                       aes(Price+2, Rating, 
                                           colour = factor(Stars), shape = factor(Stars)),
