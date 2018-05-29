@@ -135,15 +135,16 @@ Star_plot <-
 
 # Colours
 #cbPalette <- c("#00C5D3", "BF003C", "#F7B100", "#34C400") # red "#FF0000"
-cbPalette <- c("#FFB600", "#0129FF", "#90FF00", "#FF006B") 
+cbPalette <- c("#FF0000", "#0048ff", "#28c128", "#c128b1") 
 Size <- 2
 Circle_size <- 2
 Alpha <- 0.7
 Text_size <- 14
-Size_0 <- 4
-Size_1 <- 2.5
-Size_2 <- 1
-Size_3 <- 1
+Size_0 <- 1
+Size_1 <- 3
+Size_2 <- 5
+Size_3 <- 7
+Stroke <- 1
 
 
 Star_0 <- subset(Tab, Stars == 0)
@@ -153,33 +154,42 @@ Star_3 <- subset(Tab, Stars == 3)
 
 
 Price_rate <- ggplot()
-Price_rate <- Price_rate + geom_point(data = Star_0, 
-                                      aes(Price, Rating, 
-                                          colour = factor(Stars), shape = factor(Stars)),
-                                      size = Size_0, alpha = Alpha)
-Price_rate <- Price_rate + geom_point(data = Star_1, 
-                                      aes(Price, Rating, 
-                                          colour = factor(Stars), shape = factor(Stars)),
-                                      size = Size_1, alpha = Alpha)+
-  scale_shape_manual(values=c(1, 1))
-Price_rate <- Price_rate + geom_point(data = Star_2, 
-                                      aes(Price+2, Rating, 
-                                          colour = factor(Stars), shape = factor(Stars)),
-                                      size = Size_2, alpha = Alpha)
-Price_rate <- Price_rate + geom_point(data = Star_3, aes(Price-2, Rating, colour = factor(Stars)),
-                                      size = Size_3, alpha = Alpha)
+Price_rate <- Price_rate + geom_point(data = Star_0, aes(Price, Rating, colour = factor(Stars),
+                                                      shape = factor(Stars)),
+                                      size = Size_0, alpha = Alpha, stroke = Stroke)
+Price_rate <- Price_rate + geom_point(data = Star_1, aes(Price, Rating, colour = factor(Stars),
+                                                         shape = factor(Stars)),
+                                      size = Size_1, alpha = Alpha, stroke = Stroke)
+Price_rate <- Price_rate + geom_point(data = Star_2, aes(Price, Rating, colour = factor(Stars),
+                                                         shape = factor(Stars)),
+                                      size = Size_2, alpha = Alpha, stroke = Stroke)
+Price_rate <- Price_rate + geom_point(data = Star_3, aes(Price, Rating, colour = factor(Stars),
+                                                         shape = factor(Stars)),
+                                      size = Size_3, alpha = Alpha, stroke = Stroke)+
+  stat_ellipse(data=Tab, aes(x = Price, y = Rating, colour = factor(Stars)), 
+                 size = Circle_size, type = "t", show.legend = F, alpha = Alpha)+
+  scale_shape_manual(values=c(1, 1, 1, 1))+
+  theme_classic()+
+  ggtitle("Price vs Rating, grouped by star status")+
+  stat_smooth(data = Tab, se = T, formula = y~poly(x, 2), method = "lm", aes(x=Price, y=Rating),
+              show.legend = F)+
+  scale_colour_manual(values=cbPalette)+
+  scale_y_continuous(breaks = seq(0, 10, 1))+
+  scale_x_continuous(breaks = seq(0, max(Tab$Price), 50))+
+  theme(axis.title = element_text(size=Text_size),axis.text = element_text(size = Text_size),
+        legend.justification=c(1,0), legend.position=c(1,0))+
+  labs(shape = "Stars", colour = "Stars")+
+  guides(colour = guide_legend(override.aes = list(size=c(Size_0, Size_1, Size_2, Size_3))))
 
 
-Price_rate +scale_shape_manual(values=c(3, 16, 17, 20))
-  
 
 
-# Change colors and shapes manually
-ggplot(Tab, aes(Price, y=Rating, group=factor(Stars))) +
-  geom_point(aes(shape=factor(Stars), color=factor(Stars)), size=2) +
-  scale_shape_manual(values=c(3, 16, 17))+
-  scale_color_manual(values=c('#999999','#E69F00', '#56B4E9'))+
-  theme(legend.position="top")
+# # Change colors and shapes manually
+# ggplot(Tab, aes(Price, y=Rating, group=factor(Stars))) +
+#   geom_point(aes(shape=factor(Stars), color=factor(Stars)), size=2) +
+#   scale_shape_manual(values=c(3, 16, 17))+
+#   scale_color_manual(values=c('#999999','#E69F00', '#56B4E9'))+
+#   theme(legend.position="top")
 
 
 
