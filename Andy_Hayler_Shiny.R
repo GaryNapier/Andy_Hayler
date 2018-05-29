@@ -135,7 +135,8 @@ Star_plot <-
 
 # Colours
 #cbPalette <- c("#00C5D3", "BF003C", "#F7B100", "#34C400") # red "#FF0000"
-cbPalette <- c("#FF0000", "#0048ff", "#28c128", "#c128b1") 
+#cbPalette <- c("#FF0000", "#0048ff", "#28c128", "#c128b1") 
+cbPalette <- c("#00AFBB", "#E7B800", "#FC4E07", "#c128b1")
 Size <- 2
 Circle_size <- 2
 Alpha <- 0.7
