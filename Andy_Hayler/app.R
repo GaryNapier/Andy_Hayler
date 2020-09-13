@@ -165,7 +165,7 @@ Star_3 <- subset(Tab, Stars == 3)
 
 Price_rate <- ggplot()
 Price_rate <- Price_rate + geom_point(data = Star_0, aes(Price, Rating, colour = factor(Stars),
-                                                      shape = factor(Stars)),
+                                                         shape = factor(Stars)),
                                       size = Size_0, alpha = Alpha, stroke = Stroke)
 Price_rate <- Price_rate + geom_point(data = Star_1, aes(Price, Rating, colour = factor(Stars),
                                                          shape = factor(Stars)),
@@ -177,7 +177,7 @@ Price_rate <- Price_rate + geom_point(data = Star_3, aes(Price, Rating, colour =
                                                          shape = factor(Stars)),
                                       size = Size_3, alpha = Alpha, stroke = Stroke)+
   stat_ellipse(data=Tab, aes(x = Price, y = Rating, colour = factor(Stars)), 
-                 size = Circle_size, type = "t", show.legend = F, alpha = Alpha)+
+               size = Circle_size, type = "t", show.legend = F, alpha = Alpha)+
   scale_shape_manual(values=c(1, 1, 1, 1))+
   theme_classic()+
   ggtitle("Price vs Rating, grouped by star status")+
@@ -387,10 +387,10 @@ Rating_cuisine <- ggplot(Tab, aes(Cuisine, Rating))+
 
 # # Define UI for application that draws a plot
 ui <- fluidPage(
-
+  
   # Application title
   titlePanel("Restaurant review data from AndyHayler.com"),
-
+  
   # Sidebar with a slider input for number of bins
   #    sidebarLayout(
   #       sidebarPanel(
@@ -402,46 +402,46 @@ ui <- fluidPage(
   #       ),
   #
   # Show a plot of the generated distribution
-
+  
   mainPanel(
-
+    
     h4(tags$div(
       "Andy Hayler is an independent restaurant critic who has reviewed around 1500 restaurants
       around the world.",
       tags$br(),
       tags$br(),
       "In five different years he ate in all restaurants in the world with three Michelin stars.
-       This is an exploration of the basic data from his reviews, including subjective rating, price,
+      This is an exploration of the basic data from his reviews, including subjective rating, price,
       Michelin star status, location and cuisine type."
     )),
-
+    
     h5(tags$div(
       "A note on the ratings: these are the subjective ratings of Andy Hayler on his most recent
       visit to each restaurant.",
       tags$br(),
       tags$br(),
       "He scores them on a scale from 1 to 20. Previously, he rated restaurants from 1 to 10,
-        however this hasn't seemed to increased the range of scores because there are only about two
-       reviews with less than 10/20. Therefore ten was subtracted from all scores and I made any
-       scores less than zero just zero.",
+      however this hasn't seemed to increased the range of scores because there are only about two
+      reviews with less than 10/20. Therefore ten was subtracted from all scores and I made any
+      scores less than zero just zero.",
       tags$br(),
       tags$br(),
       "The range of restaurants is quite varied. There are reviews of
-       pizzerias and fish & chips alongside, say, a three-michelin star restaurant in the centre
-       of Paris. But the criteria for review is generally that it's an independent place
-       with some interesting reason to visit such as a prior recommendation or review",
+      pizzerias and fish & chips alongside, say, a three-michelin star restaurant in the centre
+      of Paris. But the criteria for review is generally that it's an independent place
+      with some interesting reason to visit such as a prior recommendation or review",
       tags$br(),
       tags$br(),
       "However, since Andy is from London, there are many more reviews of places in England.
-       It's quite rare that Andy marks a zero, and a score of 1-3 or 4 is actually pretty good
-       because it's relative to the extreme and rare values of 10/10 (see table below).",
+      It's quite rare that Andy marks a zero, and a score of 1-3 or 4 is actually pretty good
+      because it's relative to the extreme and rare values of 10/10 (see table below).",
       tags$br(),
       tags$br(),
-       "Andy pays for the restaurants himself so there should be little bias here.")),
-
+      "Andy pays for the restaurants himself so there should be little bias here.")),
+    
     h3("Number of reviews by star"),
     plotOutput("Star_plot"),
-
+    
     h3("Price vs rating"),
     plotOutput("Price_rate"),
     plotOutput("Price_rate_split"),
@@ -462,51 +462,51 @@ ui <- fluidPage(
                 tags$br(),
                 "However it should be noted that there is more 'uncertainty' a the three-star level
                 (as indicated by the widening confidence interval) since they have the fewest reviews."
-                )),
-
+    )),
+    
     h3("Price vs value"),
     plotOutput("Price_val"),
     plotOutput("Price_val_split"),
-
+    
     h3("Rating vs value"),
     plotOutput("Rating_val"),
     plotOutput("Rating_val_split"),
-
+    
     h3("Data by country / cuisine"),
     plotOutput("Price_country_hist"),
     plotOutput("Rating_country"),
-
+    
     h4("Here we can see that the UK scores about 3 (median), while France and Germany
        are score top. I think the UK's low score can be explained by the fact that Andy reviews
        nearly everywhere he'll eat out, and being a native to the UK this will include
        a lot more casual / cheaper places.
        It's a bit surprising that Germany is higher than France,
        though there are a lot fewer reviews and a bit more spread."),
-
+    
     plotOutput("Rating_cuisine")
-
+    
     )
   #    )
     )
 
 # Server output
 server <- function(input, output) {
-
+  
   output$Star_plot <- renderPlot({Star_plot})
-
+  
   output$Price_rate <- renderPlot({Price_rate})
   output$Price_rate_split <- renderPlot({Price_rate_split})
-
+  
   output$Price_val <- renderPlot({Price_val})
   output$Price_val_split <- renderPlot({Price_val_split})
-
+  
   output$Rating_val <- renderPlot({Rating_val})
   output$Rating_val_split <- renderPlot({Rating_val_split})
-
+  
   output$Price_country_hist <- renderPlot({Price_country_hist})
   output$Rating_country <- renderPlot({Rating_country})
   output$Rating_cuisine <- renderPlot({Rating_cuisine})
-
+  
 }
 
 # Run the application 
