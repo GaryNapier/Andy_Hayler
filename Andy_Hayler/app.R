@@ -127,18 +127,40 @@ Tab$Country <- ifelse(Tab$Country %in% France, "France", Tab$Country)
 
 n_reviews <- nrow(Tab)
 
-
-
-# Table and barplot of reviews by star
-
-# Star_tab <- table(Tab$Stars)
+# Barplot of reviews by star
 Star_plot <- ggplot(Tab, aes(Stars))+
-  geom_histogram(bins = 4, alpha= 0.75, colour = "black", fill = "red")+
+  geom_bar(alpha= 0.75, colour = "black", fill = "red")+
   xlab("Number Michelin stars")+ylab("Number of reviews")+
-  # ylim(c(0, nrow(Tab)+100))+
-  scale_y_continuous( breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
-  stat_count(aes(y=..count..,label=..count..),geom="text",vjust=-1)+
+  scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
+  stat_count(aes(y=..count..,label=..count..),geom="text",vjust=-1, hjust=1)+
+  stat_count(aes(y=..count..,label = paste0("(", scales::percent(..prop..), ")")),geom="text", vjust=-1, hjust=-0.25)+
   theme_bw()
+
+# Barplot of reviews by rating 
+Ratings <- sort(unique(Tab$Rating))
+Rating_plot <- ggplot(Tab, aes(Rating))+
+  geom_bar(alpha= 0.75, colour = "black", fill = "blue")+
+  xlab("Rating")+ylab("Number of reviews")+
+  scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
+  scale_x_continuous(breaks = Ratings)+
+  stat_count(aes(y=..count..,label=..count..),geom="text",vjust=-1, hjust=1.25)+
+  stat_count(aes(y=..count..,label = paste0("(", scales::percent(round(..prop.., 1)), ")")),geom="text", vjust=-1, hjust=-0.05)+
+  theme_bw()
+
+# Hist of reviews by price 
+Mean_price <- round(mean(Tab$Price), 2)
+Price_plot <- 
+  
+  ggplot(Tab, aes(Price))+
+  geom_histogram(bins = 10, alpha= 0.75, colour = "black", fill = "green")+
+  xlab("Price")+ylab("Number of reviews")+
+  scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
+  scale_x_continuous(breaks = seq(min(Tab$Price), max(Tab$Price), 50))+
+  annotate(x = Mean_price, y = nrow(Tab) - 50, geom = "text", label = sprintf("Mean price = %s", mean(Tab$Price)))+
+  theme_bw()
+
+
+
 
 
 # ------
@@ -351,7 +373,11 @@ Rating_cuisine <- ggplot(Tab, aes(Cuisine, Rating))+
              linetype = "dashed", colour = "red" )
 
 
-# 
+doc <- tags$html(
+  tags$body(
+    a(href="http://www.lalala.com"))
+)
+
 
 # # Rating by star
 # N_star <- data.frame(table(Tab$Stars))[,2]
@@ -383,8 +409,7 @@ Rating_cuisine <- ggplot(Tab, aes(Cuisine, Rating))+
 # 
 # # Dummies <- dummyVars(Rating ~ ., data = For_model)
 # # For_model <- predict(Dummies, newdata = For_model)
-# 
-# 
+
 # ------------------------------------------------------------------------------------
 #                             RUN SHINY
 # ------------------------------------------------------------------------------------
@@ -414,12 +439,17 @@ ui <- fluidPage(
     
     h4(tags$div(
       sprintf("Andy Hayler is an independent restaurant critic who has reviewed around %s restaurants
-      around the world.", fmt(n_reviews)),
+      around the world.", fmt(Round_up(n_reviews))),
       tags$br(),
       tags$br(),
-      "In five different years he ate in all three Michelin star restaurants in the world.
+      "In five different years he ate in all three-Michelin star restaurants in the world.
       This is an exploration of the basic data from his reviews, including subjective rating, price,
-      Michelin star status, location and cuisine type."
+      Michelin star status, location and cuisine type.",
+      tags$br(),
+      tags$br(), 
+      "To view the raw data and the reviews, go to ",
+      tags$a(href="https://www.andyhayler.com/restaurant-guide", 
+             "AndyHayler.com > Restaurant guide")
     )),
     
     tags$br(),
@@ -464,9 +494,21 @@ ui <- fluidPage(
       Details of what he pays are on each restaurant's review page."
     )), 
     
+    tags$br(),
+    
+    h4("Summary of data"),
+    
+    tags$br(),
     
     h3("Number of reviews by star"),
     plotOutput("Star_plot"),
+    
+    tags$br(),
+    
+    h3("Number of reviews by rating"),
+    plotOutput("Rating_plot"),
+    
+    
     
     h3("Price vs rating"),
     plotOutput("Price_rate"),
@@ -519,6 +561,7 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   output$Star_plot <- renderPlot({Star_plot})
+  output$Rating_plot <- renderPlot({Rating_plot})
   
   output$Price_rate <- renderPlot({Price_rate})
   output$Price_rate_split <- renderPlot({Price_rate_split})
