@@ -126,46 +126,144 @@ Tab$Country <- ifelse(Tab$Country %in% France, "France", Tab$Country)
 # ----------------
 
 n_reviews <- nrow(Tab)
+Alpha <- 0.75
+Text_sz <- 6
+
+# Overall 
 
 # Barplot of reviews by star
 Star_plot <- ggplot(Tab, aes(Stars))+
-  geom_bar(alpha= 0.75, colour = "black", fill = "red")+
+  geom_bar(alpha=Alpha, colour = "black", fill = "red")+
   xlab("Number Michelin stars")+ylab("Number of reviews")+
   scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
   stat_count(aes(y=..count..,label=..count..),geom="text",vjust=-1, hjust=1)+
-  stat_count(aes(y=..count..,label = paste0("(", scales::percent(..prop..), ")")),geom="text", vjust=-1, hjust=-0.25)+
+  stat_count(aes(y=..count..,label = paste0("(", scales::percent(..prop..), ")")),
+             geom="text", vjust=-1, hjust=-0.25)+
   theme_bw()
+
+
+# Rating
 
 # Barplot of reviews by rating 
 Ratings <- sort(unique(Tab$Rating))
+Med_rate <- median(Tab$Rating)
 Rating_plot <- ggplot(Tab, aes(Rating))+
-  geom_bar(alpha= 0.75, colour = "black", fill = "blue")+
+  geom_bar(alpha=Alpha, colour = "black", fill = "blue")+
   xlab("Rating")+ylab("Number of reviews")+
   scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
   scale_x_continuous(breaks = Ratings)+
   stat_count(aes(y=..count..,label=..count..),geom="text",vjust=-1, hjust=1.25)+
-  stat_count(aes(y=..count..,label = paste0("(", scales::percent(round(..prop.., 1)), ")")),geom="text", vjust=-1, hjust=-0.05)+
+  stat_count(aes(y=..count..,label = paste0("(", scales::percent(round(..prop.., 1)), ")")),
+             geom="text", vjust=-1, hjust=-0.05)+
+  annotate(x = Med_rate, y = nrow(Tab) - 50, geom = "text", size = Text_sz, 
+           label = sprintf("Median rating = %s", Med_rate))+
+  geom_vline(xintercept = Med_rate, linetype = "dotted")+
   theme_bw()
+
+# Split rating by star
+Mean_rate_star <- aggregate(Tab$Rating, list(Tab$Stars), mean)
+names(Mean_rate_star) <- c("Star", "Mean_rating")
+Mean_rate_star$Mean_rating <- round(Mean_rate_star$Mean_rating, 2)
+
+
+# Price
 
 # Hist of reviews by price 
-Mean_price <- round(mean(Tab$Price), 2)
-Price_plot <- 
-  
-  ggplot(Tab, aes(Price))+
-  geom_histogram(bins = 10, alpha= 0.75, colour = "black", fill = "green")+
+Med_price <- round(median(Tab$Price), 0)
+n_price <- 50
+Price_plot <- ggplot(Tab, aes(Price))+
+  geom_histogram(binwidth = n_price, alpha=Alpha, colour = "black", fill = "green",  boundary = 0)+
   xlab("Price")+ylab("Number of reviews")+
   scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
-  scale_x_continuous(breaks = seq(min(Tab$Price), max(Tab$Price), 50))+
-  annotate(x = Mean_price, y = nrow(Tab) - 50, geom = "text", label = sprintf("Mean price = %s", mean(Tab$Price)))+
+  scale_x_continuous(breaks = seq(0, Round_up(max(Tab$Price), to = 100), n_price), 
+                     labels = seq(0, Round_up(max(Tab$Price), to = 100), n_price))+
+  annotate(x = Med_price, y = nrow(Tab) - 50, geom = "text", size = Text_sz, 
+           label = sprintf("Median price = £%s", Med_price))+
+  geom_vline(xintercept = Med_price, linetype="dotted")+
+  theme_bw()
+
+# Split price by star
+Mean_price_star <- aggregate(Tab$Price, list(Tab$Stars), mean)
+names(Mean_price_star) <- c("Stars", "Mean_price")
+Mean_price_star$Mean_price <- round(Mean_price_star$Mean_price, 2)
+
+Price_star_hist <- 
+  
+  ggplot()+
+  geom_histogram(data = Tab, aes(x = Price, fill=factor(Stars)), 
+                 bins = n_price, alpha = Alpha, colour = "black")+
+  ggtitle("Histogram of price by stars")+
+  scale_x_continuous(breaks = seq(0, Round_up(max(Tab$Price), to = 100), n_price), 
+                     labels = seq(0, Round_up(max(Tab$Price), to = 100), n_price))+
+  geom_vline(data = Mean_price_star, mapping = aes(xintercept = Mean_price))+
+  facet_wrap( ~ factor(Stars) )+
+  labs(fill = "Stars")+
   theme_bw()
 
 
 
 
+# Value
 
-# ------
-# Plots
-# ------
+# Hist of reviews by value 
+Med_value <- round(median(Tab$Value), 0)
+n_val <- 10
+Value_plot <- ggplot(Tab, aes(Value))+
+  geom_histogram(binwidth = n_val, alpha=Alpha, colour = "black", fill = "orange",  boundary = 0)+
+  xlab("Value")+ylab("Number of reviews")+
+  scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
+  scale_x_continuous(breaks = seq(0, max(Tab$Value), n_val), 
+                     labels = seq(0, max(Tab$Value), n_val))+
+  annotate(x = Med_value, y = nrow(Tab) - 50, geom = "text", size = 6, 
+           label = sprintf("Median value = %s", Med_value))+
+  geom_vline(xintercept = Med_value, linetype="dotted")+
+  theme_bw()
+
+# Split val by star
+Mean_val_star <- aggregate(Tab$Value, list(Tab$Stars), mean)
+names(Mean_val_star) <- c("Star", "Mean_value")
+Mean_val_star$Mean_value <- round(Mean_val_star$Mean_value, 2)
+
+
+# Country
+
+# Rating by country
+N_country <- data.frame(table(Tab$Country))
+Meds_country <- c(by(Tab$Rating, Tab$Country, median, na.rm = T))
+Rating_country <- ggplot(Tab, aes(Country, Rating))+
+  geom_boxplot(fill = "yellow", alpha = Alpha)+
+  geom_text(data=data.frame(),
+            aes(x=names(Meds_country), y=Meds_country+0.5, label=N_country$Freq), size=Text_sz-2)+
+  # ggtitle("Rating by country (with # of reviews)")+
+  scale_y_continuous(breaks = 0:10)+
+  geom_hline(yintercept = median(Tab$Rating, na.rm = T),
+             linetype = "dashed", colour = "red" )+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Cuisine
+
+# Rating by cuisine type
+N_cuis <- data.frame(table(Tab$Cuisine))[,2]
+Meds <- c(by( Tab$Rating, Tab$Cuisine, median, na.rm = T))
+Rating_cuisine <- ggplot(Tab, aes(Cuisine, Rating))+
+  geom_boxplot(fill = "cyan", alpha = Alpha)+theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  geom_text(data=data.frame(),
+            aes(x=names(Meds), y=Meds+0.5, label=N_cuis), size=4)+
+  # ggtitle("Rating by cuisine type (with # of reviews)")+
+  scale_y_continuous(breaks = 0:10)+
+  geom_hline(yintercept = median(Tab$Rating, na.rm = T),
+             linetype = "dashed", colour = "red" )
+
+
+
+
+
+# ---------------
+# Analysis plots
+# ---------------
 
 # Price & rating
 
@@ -230,7 +328,6 @@ Star_3 <- subset(Tab, Stars == 3)
 # Price vs Rating (all)
 Price_rate <- ggplot(Tab, aes(Price, Rating, colour = factor(Stars)))
 Price_rate <- Price_rate + geom_point(size = Size, alpha = Alpha)
-Price_rate <- Price_rate + theme_classic()
 Price_rate <- Price_rate + ggtitle("Price vs Rating, grouped by star status")
 Price_rate <- Price_rate + stat_smooth(se = T,  
                                        formula = y~poly(x, 2),
@@ -244,6 +341,7 @@ Price_rate <- Price_rate + theme(axis.title = element_text(size=Text_size),
 Price_rate <- Price_rate + labs(colour = "Stars")
 Price_rate <- Price_rate + stat_ellipse(size = Circle_size, type = "t", show.legend = F,
                                         alpha = Alpha)
+Price_rate <- Price_rate + theme_bw()
 
 # Anova analysis of stars and rating
 Star_lm <- glm(Rating~factor(Stars)+I(Price/10) -1, data = Tab)
@@ -326,57 +424,8 @@ Rating_val_split <- ggplot(Tab, aes(Rating, log(Value+1), colour = factor(Stars)
   labs(colour = "Stars")+
   theme_bw()
 
-# Price frequency by country
-# Price_country_hist <- ggplot(Tab[Tab["Country"] == " United Kingdom", ], aes(Price))+
-#   geom_histogram()+
-#   ggtitle("Histogram of price by country")
-
-Price_country_hist <- ggplot(Tab, aes(Price, fill= factor(Stars)))+
-  geom_histogram(bins = 50, alpha = Alpha)+
-  ggtitle("Histogram of price by stars")+
-  scale_y_continuous(limits = c(0, 250))+
-  labs(fill = "Stars")+
-  theme_bw()
-
-# ggplot(Tab[Tab["Country"] == " United Kingdom", ], aes(Price, fill= factor(Stars)))+
-#   geom_histogram(bins = 50, alpha = Alpha)+theme_classic()
-
-# Rating by country
-N_country <- data.frame(table(Tab$Country))
-Meds_country <- c(by(Tab$Rating, Tab$Country, median, na.rm = T))
-
-Rating_country <- ggplot(Tab, aes(Country, Rating))+
-  geom_boxplot(fill = cbPalette[1], alpha = Alpha)+
-  geom_text(data=data.frame(),
-            aes(x=names(Meds_country), y=Meds_country+0.5, label=N_country$Freq),
-            col='blue', size=4)+
-  ggtitle("Rating by country (with # of reviews)")+
-  scale_y_continuous(breaks = 0:10)+
-  geom_hline(yintercept = median(Tab$Rating, na.rm = T),
-             linetype = "dashed", colour = "red" )+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# Rating by cuisine type
-N_cuis <- data.frame(table(Tab$Cuisine))[,2]
-Meds <- c(by( Tab$Rating, Tab$Cuisine, median, na.rm = T))
-
-Rating_cuisine <- ggplot(Tab, aes(Cuisine, Rating))+
-  geom_boxplot(fill = cbPalette[1], alpha = Alpha)+theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  geom_text(data=data.frame(),
-            aes(x=names(Meds), y=Meds+0.5, label=N_cuis),
-            col='blue', size=4)+
-  ggtitle("Rating by cuisine type (with # of reviews)")+
-  scale_y_continuous(breaks = 0:10)+
-  geom_hline(yintercept = median(Tab$Rating, na.rm = T),
-             linetype = "dashed", colour = "red" )
 
 
-doc <- tags$html(
-  tags$body(
-    a(href="http://www.lalala.com"))
-)
 
 
 # # Rating by star
