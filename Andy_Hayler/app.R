@@ -196,6 +196,7 @@ Price_star_hist <-
   scale_x_continuous(breaks = seq(0, Round_up(max(Tab$Price), to = 100), n_price), 
                      labels = seq(0, Round_up(max(Tab$Price), to = 100), n_price))+
   geom_vline(data = Mean_price_star, mapping = aes(xintercept = Mean_price))+
+  annotate()
   facet_wrap( ~ factor(Stars) )+
   labs(fill = "Stars")+
   theme_bw()
