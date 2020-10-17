@@ -161,9 +161,21 @@ Rating_plot <- ggplot(Tab, aes(Rating))+
   theme_bw()
 
 # Split rating by star
-Mean_rate_star <- aggregate(Tab$Rating, list(Tab$Stars), mean)
-names(Mean_rate_star) <- c("Star", "Mean_rating")
-Mean_rate_star$Mean_rating <- round(Mean_rate_star$Mean_rating, 2)
+Med_rate_star <- aggregate(Tab$Rating, list(Tab$Stars), median)
+names(Med_rate_star) <- c("Stars", "Med_rating")
+Med_rate_star$Med_rating <- round(Med_rate_star$Med_rating, 2)
+
+Rate_star_hist <- ggplot()+
+  geom_bar(data = Tab, aes(x = Rating, fill=factor(Stars)), alpha = Alpha, colour = "black")+
+  ggtitle("Histogram of rating by stars")+
+  scale_x_continuous(breaks = Ratings, labels = Ratings)+
+  geom_vline(data = Med_rate_star, mapping = aes(xintercept = Med_rating), linetype = "dotted")+
+  geom_text(data = Med_rate_star, 
+            mapping = aes(x = Med_rating, y = Inf, label = sprintf("Median rating = %s", Med_rating)),
+            hjust = -0.1, vjust = 1)+
+  facet_wrap( ~ factor(Stars) )+
+  labs(fill = "Stars")+
+  theme_bw()
 
 
 # Price
@@ -183,25 +195,23 @@ Price_plot <- ggplot(Tab, aes(Price))+
   theme_bw()
 
 # Split price by star
-Mean_price_star <- aggregate(Tab$Price, list(Tab$Stars), mean)
-names(Mean_price_star) <- c("Stars", "Mean_price")
-Mean_price_star$Mean_price <- round(Mean_price_star$Mean_price, 2)
+Med_price_star <- aggregate(Tab$Price, list(Tab$Stars), median)
+names(Med_price_star) <- c("Stars", "Med_price")
+Med_price_star$Med_price <- round(Med_price_star$Med_price, 2)
 
-Price_star_hist <- 
-  
-  ggplot()+
+Price_star_hist <- ggplot()+
   geom_histogram(data = Tab, aes(x = Price, fill=factor(Stars)), 
                  bins = n_price, alpha = Alpha, colour = "black")+
   ggtitle("Histogram of price by stars")+
   scale_x_continuous(breaks = seq(0, Round_up(max(Tab$Price), to = 100), n_price), 
                      labels = seq(0, Round_up(max(Tab$Price), to = 100), n_price))+
-  geom_vline(data = Mean_price_star, mapping = aes(xintercept = Mean_price))+
-  annotate()
+  geom_vline(data = Med_price_star, mapping = aes(xintercept = Med_price), linetype = "dotted")+
+  geom_text(data = Med_price_star, 
+            mapping = aes(x = Med_price, y = Inf, label = sprintf("Median price = £%s", Med_price)),
+            hjust = -0.1, vjust = 1)+
   facet_wrap( ~ factor(Stars) )+
   labs(fill = "Stars")+
   theme_bw()
-
-
 
 
 # Value
@@ -221,9 +231,23 @@ Value_plot <- ggplot(Tab, aes(Value))+
   theme_bw()
 
 # Split val by star
-Mean_val_star <- aggregate(Tab$Value, list(Tab$Stars), mean)
-names(Mean_val_star) <- c("Star", "Mean_value")
-Mean_val_star$Mean_value <- round(Mean_val_star$Mean_value, 2)
+Med_val_star <- aggregate(Tab$Value, list(Tab$Stars), median)
+names(Med_val_star) <- c("Stars", "Med_value")
+Med_val_star$Med_value <- round(Med_val_star$Med_value, 2)
+
+Val_star_hist <- ggplot()+
+  geom_histogram(data = Tab, aes(x = Value, fill=factor(Stars)), 
+                 bins = n_val, alpha = Alpha, colour = "black")+
+  ggtitle("Histogram of value by stars")+
+  scale_x_continuous(breaks = seq(0, max(Tab$Value), n_val), 
+                     labels = seq(0, max(Tab$Value), n_val))+
+  geom_vline(data = Med_val_star, mapping = aes(xintercept = Med_value), linetype = "dotted")+
+  geom_text(data = Med_val_star, 
+            mapping = aes(x = Med_value, y = Inf, label = sprintf("Median value = %s", Med_value)),
+            hjust = -0.1, vjust = 1)+
+  facet_wrap( ~ factor(Stars) )+
+  labs(fill = "Stars")+
+  theme_bw()
 
 
 # Country
@@ -257,10 +281,6 @@ Rating_cuisine <- ggplot(Tab, aes(Cuisine, Rating))+
   scale_y_continuous(breaks = 0:10)+
   geom_hline(yintercept = median(Tab$Rating, na.rm = T),
              linetype = "dashed", colour = "red" )
-
-
-
-
 
 # ---------------
 # Analysis plots
@@ -558,6 +578,47 @@ ui <- fluidPage(
     h3("Number of reviews by rating"),
     plotOutput("Rating_plot"),
     
+    tags$br(),
+    
+    h3("Number of reviews by rating, split by star"),
+    plotOutput("Rate_star_hist"),
+    
+    tags$br(),
+    
+    h3("Number of reviews by price"),
+    plotOutput("Price_plot"),
+    
+    tags$br(),
+    
+    h3("Number of reviews by price, split by star"),
+    plotOutput("Price_star_hist"),
+    
+    tags$br(),
+    
+    h3("Number of reviews by value"),
+    plotOutput("Value_plot"),
+    
+    tags$br(),
+    
+    h3("Number of reviews by value, split by star"),
+    plotOutput("Val_star_hist"),
+    
+    tags$br(),
+    
+    h3("Number of reviews by country and their median ratings"),
+    plotOutput("Rating_country"),
+    
+    
+    h4("Comments: The UK scores about 3 (median), while France and Germany score top. 
+        The UK's low score might be because Hayler reviews nearly everywhere he'll eat out (I presume), 
+        and because he lives in London, these will include a lot more casual / cheaper places.
+        It might be surprising that Germany, Swizerland and the Netherlands rival France, 
+        though there are a lot fewer reviews, so the chioce of restaurants may be much more selective."),
+  
+    
+   
+    # output$Rating_country <- renderPlot({Rating_country})
+    # output$Rating_cuisine <- renderPlot({Rating_cuisine})
     
     
     h3("Price vs rating"),
@@ -590,17 +651,6 @@ ui <- fluidPage(
     plotOutput("Rating_val"),
     plotOutput("Rating_val_split"),
 
-    h3("Data by country / cuisine"),
-    plotOutput("Price_country_hist"),
-    plotOutput("Rating_country"),
-
-    h4("Here we can see that the UK scores about 3 (median), while France and Germany
-       are score top. I think the UK's low score can be explained by the fact that Andy reviews
-       nearly everywhere he'll eat out, and being a native to the UK this will include
-       a lot more casual / cheaper places.
-       It's a bit surprising that Germany is higher than France,
-       though there are a lot fewer reviews and a bit more spread."),
-
     plotOutput("Rating_cuisine")
     
     ) # mainPanel
@@ -610,9 +660,22 @@ ui <- fluidPage(
 # Server output
 server <- function(input, output) {
   
+  # Basics
   output$Star_plot <- renderPlot({Star_plot})
-  output$Rating_plot <- renderPlot({Rating_plot})
   
+  output$Rating_plot <- renderPlot({Rating_plot})
+  output$Rate_star_hist <- renderPlot({Rate_star_hist})
+  
+  output$Price_plot <- renderPlot({Price_plot})
+  output$Price_star_hist <- renderPlot({Price_star_hist})
+  
+  output$Value_plot <- renderPlot({Value_plot})
+  output$Val_star_hist <- renderPlot({Val_star_hist})
+  
+  output$Rating_country <- renderPlot({Rating_country})
+  output$Rating_cuisine <- renderPlot({Rating_cuisine})
+  
+  # Analysis
   output$Price_rate <- renderPlot({Price_rate})
   output$Price_rate_split <- renderPlot({Price_rate_split})
 
@@ -622,10 +685,8 @@ server <- function(input, output) {
   output$Rating_val <- renderPlot({Rating_val})
   output$Rating_val_split <- renderPlot({Rating_val_split})
 
-  output$Price_country_hist <- renderPlot({Price_country_hist})
-  output$Rating_country <- renderPlot({Rating_country})
-  output$Rating_cuisine <- renderPlot({Rating_cuisine})
-  
+  # output$Price_country_hist <- renderPlot({Price_country_hist})
+
 }
 
 # Run the application 
