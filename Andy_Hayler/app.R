@@ -30,6 +30,10 @@ Remove_rows <- function(Data, Col, Value, N){
 
 fmt <- function(x, ...){format(x, big.mark=",",scientific=FALSE, ...)}
 
+max_hist <- function(ggplot_hist){
+  max(ggplot_build(ggplot_hist)$data[[1]]$count)
+}
+
 library(XML)
 library(plyr)
 library(dplyr)
@@ -56,7 +60,7 @@ Lines <- gsub("<span></span>", 1, Lines)
 
 Tab <- cbind(readHTMLTable(Lines, header=T, which=2,stringsAsFactors=F),
              readHTMLTable(Lines, header=T, which=1,stringsAsFactors=F))
-# 
+
 # Price
 Tab$Price <- as.numeric(gsub(".([0-9]+).*$", "\\1", Tab$Price))
 Tab$Price <- Round_up(Tab$Price) # round up 
@@ -120,6 +124,9 @@ USA <- c(" Colorado", " Colorado ", " Florida ", " Hawaii ", " Texas ", " United
 Tab$Country <- ifelse(Tab$Country %in% USA, "United States", Tab$Country)
 France <- c(" Loire", " France")
 Tab$Country <- ifelse(Tab$Country %in% France, "France", Tab$Country)
+# Remove trailing spaces
+Tab$Country <- trimws(Tab$Country)
+
 
 # ----------------
 # Data summary
@@ -164,18 +171,24 @@ Rating_plot <- ggplot(Tab, aes(Rating))+
 Med_rate_star <- aggregate(Tab$Rating, list(Tab$Stars), median)
 names(Med_rate_star) <- c("Stars", "Med_rating")
 Med_rate_star$Med_rating <- round(Med_rate_star$Med_rating, 2)
+Rate_star_max <- Round_up(max(table(Tab$Rating, Tab$Stars)), 100)
+Rate_star_max_pc_inc <- Rate_star_max*0.1
 
 Rate_star_hist <- ggplot()+
   geom_bar(data = Tab, aes(x = Rating, fill=factor(Stars)), alpha = Alpha, colour = "black")+
-  ggtitle("Histogram of rating by stars")+
   scale_x_continuous(breaks = Ratings, labels = Ratings)+
-  geom_vline(data = Med_rate_star, mapping = aes(xintercept = Med_rating), linetype = "dotted")+
+  scale_y_continuous(breaks = seq(0, Rate_star_max, 50), 
+                     limits = c(0, Rate_star_max+Rate_star_max_pc_inc))+
+  geom_segment(data = Med_rate_star, 
+               aes(x = Med_rating , y = 0, xend = Med_rating, yend = Rate_star_max-Rate_star_max_pc_inc), 
+               linetype = "dotted")+
   geom_text(data = Med_rate_star, 
-            mapping = aes(x = Med_rating, y = Inf, label = sprintf("Median rating = %s", Med_rating)),
-            hjust = -0.1, vjust = 1)+
+            mapping = aes(x = Med_rating, y = Inf,
+                          label = sprintf("Median rating = %s", Med_rating)), vjust = 2)+
   facet_wrap( ~ factor(Stars) )+
   labs(fill = "Stars")+
   theme_bw()
+
 
 
 # Price
@@ -183,12 +196,14 @@ Rate_star_hist <- ggplot()+
 # Hist of reviews by price 
 Med_price <- round(median(Tab$Price), 0)
 n_price <- 50
+Max_price <- Round_up(max(Tab$Price), to = 100)
+
 Price_plot <- ggplot(Tab, aes(Price))+
   geom_histogram(binwidth = n_price, alpha=Alpha, colour = "black", fill = "green",  boundary = 0)+
   xlab("Price")+ylab("Number of reviews")+
   scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
-  scale_x_continuous(breaks = seq(0, Round_up(max(Tab$Price), to = 100), n_price), 
-                     labels = seq(0, Round_up(max(Tab$Price), to = 100), n_price))+
+  scale_x_continuous(breaks = seq(0, Max_price, n_price), 
+                     labels = seq(0, Max_price, n_price))+
   annotate(x = Med_price, y = nrow(Tab) - 50, geom = "text", size = Text_sz, 
            label = sprintf("Median price = £%s", Med_price))+
   geom_vline(xintercept = Med_price, linetype="dotted")+
@@ -198,17 +213,21 @@ Price_plot <- ggplot(Tab, aes(Price))+
 Med_price_star <- aggregate(Tab$Price, list(Tab$Stars), median)
 names(Med_price_star) <- c("Stars", "Med_price")
 Med_price_star$Med_price <- round(Med_price_star$Med_price, 2)
+Price_star_max <- Round_up(max(table(Tab$Price, Tab$Stars)), 100)
+Price_star_max_pc_inc <- Price_star_max*0.1
 
 Price_star_hist <- ggplot()+
   geom_histogram(data = Tab, aes(x = Price, fill=factor(Stars)), 
-                 bins = n_price, alpha = Alpha, colour = "black")+
-  ggtitle("Histogram of price by stars")+
-  scale_x_continuous(breaks = seq(0, Round_up(max(Tab$Price), to = 100), n_price), 
-                     labels = seq(0, Round_up(max(Tab$Price), to = 100), n_price))+
-  geom_vline(data = Med_price_star, mapping = aes(xintercept = Med_price), linetype = "dotted")+
+                 bins = n_price, alpha = Alpha, colour = "black", boundary = 0)+
+  scale_x_continuous(breaks = seq(0, Max_price, n_price), 
+                     labels = seq(0, Max_price, n_price))+
+  scale_y_continuous(breaks = seq(0, Price_star_max, 50), 
+                     limits = c(0, Price_star_max+Price_star_max_pc_inc))+
+  geom_segment(data = Med_price_star, 
+               aes(x = Med_price , y = 0, xend = Med_price, yend = Price_star_max-Price_star_max_pc_inc), 
+               linetype = "dotted")+
   geom_text(data = Med_price_star, 
-            mapping = aes(x = Med_price, y = Inf, label = sprintf("Median price = £%s", Med_price)),
-            hjust = -0.1, vjust = 1)+
+            mapping = aes(x = Med_price, y = Inf, label = sprintf("Median price = £%s", Med_price)), vjust = 2)+
   facet_wrap( ~ factor(Stars) )+
   labs(fill = "Stars")+
   theme_bw()
@@ -218,36 +237,55 @@ Price_star_hist <- ggplot()+
 
 # Hist of reviews by value 
 Med_value <- round(median(Tab$Value), 0)
+Max_val <- max(Tab$Value)
+x_scale <- seq(0, Max_val, 10)
 n_val <- 10
+
+
 Value_plot <- ggplot(Tab, aes(Value))+
-  geom_histogram(binwidth = n_val, alpha=Alpha, colour = "black", fill = "orange",  boundary = 0)+
+  geom_histogram(bins = n_val+1, alpha=Alpha, colour = "black", fill = "orange",  boundary = 0)+
   xlab("Value")+ylab("Number of reviews")+
   scale_y_continuous(breaks = seq(0, nrow(Tab), 100), limits = c(0, nrow(Tab)+10))+
-  scale_x_continuous(breaks = seq(0, max(Tab$Value), n_val), 
-                     labels = seq(0, max(Tab$Value), n_val))+
+  scale_x_continuous(breaks = x_scale, labels = x_scale)+
   annotate(x = Med_value, y = nrow(Tab) - 50, geom = "text", size = 6, 
            label = sprintf("Median value = %s", Med_value))+
-  geom_vline(xintercept = Med_value, linetype="dotted")+
+  # geom_vline(xintercept = Med_value, linetype="dotted")+
+  geom_segment(aes(x = Med_value, y = 0, xend = Med_value, yend = nrow(Tab)-nrow(Tab)*0.1),
+               linetype = "dotted")+
   theme_bw()
 
 # Split val by star
 Med_val_star <- aggregate(Tab$Value, list(Tab$Stars), median)
 names(Med_val_star) <- c("Stars", "Med_value")
 Med_val_star$Med_value <- round(Med_val_star$Med_value, 2)
+# Val_star_max <- Round_up(max(table(Tab$Value, Tab$Stars)), 100)
+# Val_star_max_pc_inc <- Val_star_max*0.1
+
+
 
 Val_star_hist <- ggplot()+
   geom_histogram(data = Tab, aes(x = Value, fill=factor(Stars)), 
-                 bins = n_val, alpha = Alpha, colour = "black")+
-  ggtitle("Histogram of value by stars")+
-  scale_x_continuous(breaks = seq(0, max(Tab$Value), n_val), 
-                     labels = seq(0, max(Tab$Value), n_val))+
-  geom_vline(data = Med_val_star, mapping = aes(xintercept = Med_value), linetype = "dotted")+
+                 bins = n_val+1, alpha = Alpha, colour = "black",
+                 boundary = 0, closed = "left")+
+  scale_x_continuous(breaks = seq(0, Max_val, n_val), 
+                     labels = seq(0, Max_val, n_val))+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   geom_text(data = Med_val_star, 
-            mapping = aes(x = Med_value, y = Inf, label = sprintf("Median value = %s", Med_value)),
-            hjust = -0.1, vjust = 1)+
+            mapping = aes(x = Med_value, y = Inf, label = sprintf("Median value = %s", Med_value)), vjust = 2)+
   facet_wrap( ~ factor(Stars) )+
   labs(fill = "Stars")+
   theme_bw()
+yend <- max_hist(Val_star_hist)
+Val_star_hist <- Val_star_hist + 
+  geom_segment(data = Med_val_star,
+             aes(x = Med_value, y = 0, xend = Med_value, yend = yend + yend*0.1),
+             linetype = "dotted")
+
+
+plot = ggplot(movies, aes(rating)) + geom_histogram(binwidth=0.5, aes(fill=..count..))
+
+plot <- plot + scale_y_continuous(expand = c(0,0), limits=c(0,max_hist(plot)*1.1))
+
 
 
 # Country
@@ -263,6 +301,19 @@ Rating_country <- ggplot(Tab, aes(Country, Rating))+
   scale_y_continuous(breaks = 0:10)+
   geom_hline(yintercept = median(Tab$Rating, na.rm = T),
              linetype = "dashed", colour = "red" )+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Barplot of stars by country
+Stars_country <- data.frame(table(Tab$Country, Tab$Stars))
+names(Stars_country) <- c("Country", "Stars", "Number")
+
+Stars_country_plot <- ggplot()+
+  geom_bar(data = Stars_country, aes(x = Country, y = Number, fill = Stars), 
+          position="dodge", stat="identity")+
+  # scale_y_continuous(breaks = seq(0, Round_up(max(Stars_country$Number), 100), 50))+
+  scale_y_continuous(breaks = seq(0, Round_up(max(Stars_country$Number), 100), 50), 
+                     limits = c(0, Round_up(max(Stars_country$Number), 100)))+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
@@ -605,18 +656,22 @@ ui <- fluidPage(
     
     tags$br(),
     
-    h3("Number of reviews by country and their median ratings"),
+    h3("Rating by country (and number of reviews)"),
     plotOutput("Rating_country"),
     
     
-    h4("Comments: The UK scores about 3 (median), while France and Germany score top. 
-        The UK's low score might be because Hayler reviews nearly everywhere he'll eat out (I presume), 
-        and because he lives in London, these will include a lot more casual / cheaper places.
-        It might be surprising that Germany, Swizerland and the Netherlands rival France, 
-        though there are a lot fewer reviews, so the chioce of restaurants may be much more selective."),
-  
+    h4(sprintf("Comments: The UK scores about %s (median), while other European countries such as France, Germany, 
+Swizerland and the Netherlands score top. However, since Hayler lives in London there are far more UK reviews
+which include a lot more casual / cheaper places (see Michelin stars by country plot below). 
+               Also, the choice of overseas restaurants is probably much more selective.", 
+               Meds_country["United Kingdom"])),
     
-   
+    h3("Number of stars by country"),
+    plotOutput("Stars_country_plot"),
+    
+    h3("Rating by cuisine (and number of reviews)"),
+    plotOutput("Rating_cuisine"), 
+    
     # output$Rating_country <- renderPlot({Rating_country})
     # output$Rating_cuisine <- renderPlot({Rating_cuisine})
     
@@ -650,8 +705,6 @@ ui <- fluidPage(
     h3("Rating vs value"),
     plotOutput("Rating_val"),
     plotOutput("Rating_val_split"),
-
-    plotOutput("Rating_cuisine")
     
     ) # mainPanel
   #    )
@@ -673,6 +726,7 @@ server <- function(input, output) {
   output$Val_star_hist <- renderPlot({Val_star_hist})
   
   output$Rating_country <- renderPlot({Rating_country})
+  output$Stars_country_plot <- renderPlot({Stars_country_plot})
   output$Rating_cuisine <- renderPlot({Rating_cuisine})
   
   # Analysis
