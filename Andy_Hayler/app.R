@@ -282,11 +282,6 @@ Val_star_hist <- Val_star_hist +
              linetype = "dotted")
 
 
-plot = ggplot(movies, aes(rating)) + geom_histogram(binwidth=0.5, aes(fill=..count..))
-
-plot <- plot + scale_y_continuous(expand = c(0,0), limits=c(0,max_hist(plot)*1.1))
-
-
 
 # Country
 
@@ -400,7 +395,7 @@ Star_3 <- subset(Tab, Stars == 3)
 # Price vs Rating (all)
 Price_rate <- ggplot(Tab, aes(Price, Rating, colour = factor(Stars)))
 Price_rate <- Price_rate + geom_point(size = Size, alpha = Alpha)
-Price_rate <- Price_rate + ggtitle("Price vs Rating, grouped by star status")
+# Price_rate <- Price_rate + ggtitle("Price vs Rating, grouped by star status")
 Price_rate <- Price_rate + stat_smooth(se = T,  
                                        formula = y~poly(x, 2),
                                        method = "lm", aes(group = 1), 
@@ -430,15 +425,17 @@ summary(Stars_anova)
 Price_rate_split <- ggplot(Tab, aes(Price, Rating, colour = factor(Stars)))+
   geom_point(size = Size, alpha = Alpha)+
   facet_wrap( ~ factor(Stars) )+
-  ggtitle("Price vs Rating by stars, split out")+
+  # ggtitle("Price vs Rating by stars, split out")+
   stat_smooth(se = T,  formula = y~poly(x, 2), method = "lm")+ # aes(group = 1)
   scale_colour_manual(values=cbPalette)+
   scale_y_continuous(breaks = seq(0, 10, 1))+
   scale_x_continuous(breaks = seq(0, max(Tab$Price), 50)) +
+  theme_bw()+
   theme(axis.title = element_text(size=Text_size),
-        axis.text = element_text(size = Text_size)) +
-  labs(colour = "Stars")+
-  theme_bw()
+        axis.text = element_text(size = Text_size), 
+        legend.position = "none") 
+  # labs(colour = "Stars")
+
 
 # Price vs value (all)
 Price_val <- ggplot(Tab, aes(Price, log(Value+1), colour = factor(Stars)))+
@@ -463,10 +460,12 @@ Price_val_split <- ggplot(Tab, aes(Price, log(Value+1), colour = factor(Stars)))
   scale_colour_manual(values=cbPalette)+
   scale_y_continuous(breaks = seq(0, log(max(Tab$Value+1, na.rm = T)), 1))+
   scale_x_continuous(breaks = seq(0, max(Tab$Price), 50)) +
+  theme_bw()+
   theme(axis.title = element_text(size=Text_size),
-        axis.text = element_text(size = Text_size)) +
-  labs(colour = "Stars")+
-  theme_bw()
+        axis.text = element_text(size = Text_size), 
+        legend.position = "none") 
+  # labs(colour = "Stars")
+
 
 # Rating v log(value) (all)
 Rating_val <- ggplot(Tab, aes(Rating, log(Value+1), colour = factor(Stars)))+
@@ -491,10 +490,12 @@ Rating_val_split <- ggplot(Tab, aes(Rating, log(Value+1), colour = factor(Stars)
   scale_colour_manual(values=cbPalette)+
   scale_y_continuous(breaks = seq(0, log(max(Tab$Value+1, na.rm = T)), 1))+
   scale_x_continuous(breaks = seq(0, max(Tab$Rating, na.rm = T), 1)) +
+  theme_bw()+
   theme(axis.title = element_text(size=Text_size),
-        axis.text = element_text(size = Text_size)) +
-  labs(colour = "Stars")+
-  theme_bw()
+        axis.text = element_text(size = Text_size), 
+        legend.position = "none") 
+  # labs(colour = "Stars")+
+  
 
 
 
@@ -570,14 +571,29 @@ ui <- fluidPage(
       tags$br(), 
       "To view the raw data and the reviews, go to ",
       tags$a(href="https://www.andyhayler.com/restaurant-guide", 
-             "AndyHayler.com > Restaurant guide")
+             "AndyHayler.com > Restaurant guide."), 
+      tags$br(), 
+      tags$br(), 
+      "First there are plots summarising all the reviews by rating, price, value, country and cusine, 
+      which is broken down by Michelin star.", 
+      tags$br(),
+      tags$br(),
+      "Then there are plots which go into analyes, for example how price is related to Hayler's rating, 
+      again relating to Michelin star.", 
+      tags$br(),
+      tags$br(),
+      "Finally there is a section on interesting individial restaurants, for example best and worst value restaurants."
+      
     )),
     
     tags$br(),
     tags$br(),
 
     h5(tags$div(
-      "A note on the ratings: These are the subjective ratings of Andy Hayler on his most recent
+      "A note on the ratings:", 
+      tags$br(), 
+      tags$br(),
+      "These are the subjective ratings of Andy Hayler on his most recent
       visit to each restaurant.",
       tags$br(),
       tags$br(),
@@ -589,20 +605,24 @@ ui <- fluidPage(
       tags$br(),
       tags$br(),
       "The range of restaurants is quite varied. There are reviews of
-      pizzerias and fish & chips alongside, say, a three michelin star restaurant in the centre
+      pizzerias and fish & chips alongside, say, a three-Michelin star restaurant in the centre
       of Paris. But the criteria for review is generally that it's an independent place
-      with some interesting reason to visit such as a prior recommendation or review",
+      with some interesting reason to visit such as a prior recommendation or review. 
+      However, since Hayler is from London, there are many more reviews of places in England.",
       tags$br(),
       tags$br(),
-      "However, since Hayler is from London, there are many more reviews of places in England.
-      It's quite rare that he marks a zero, and a score of more than 2 or 3 means the food is actually pretty good
-      because the score is relative to the extreme and rare values of 10/10 (see table below).",
+      "It's quite rare that he marks a zero, and a score of more than 2 or 3 means the food is actually pretty good
+      because the score is relative to the extreme and rare values of 10/10 (see 'Number of reviews by rating' plot below).",
       tags$br(),
       tags$br(),
-      "Hayler pays for the restaurants himself so there should be little bias in the subjective score.")),
-    
+      "Hayler pays for the restaurants himself so there should be little bias in the subjective score ('rating' from hereon).")),
+    tags$br(),
+    tags$br(),
     h5(tags$div(
-      "A note on prices: The prices here are what he calls an 'average price', 
+      "A note on prices:", 
+      tags$br(),
+      tags$br(),
+      "The prices here are what he calls an 'average price', 
       which is described as 'typical price for three courses and modest wine', 
       however it's unclear how this is calculated exactly.",
       tags$br(),
@@ -616,8 +636,9 @@ ui <- fluidPage(
     )), 
     
     tags$br(),
+    tags$br(), 
     
-    h4("Summary of data"),
+    h2("Summary of data"),
     
     tags$br(),
     
@@ -661,8 +682,9 @@ ui <- fluidPage(
     
     
     h4(sprintf("Comments: The UK scores about %s (median), while other European countries such as France, Germany, 
-Swizerland and the Netherlands score top. However, since Hayler lives in London there are far more UK reviews
-which include a lot more casual / cheaper places (see Michelin stars by country plot below). 
+    Swizerland and the Netherlands score top. However, since Hayler lives in London there are far more UK reviews
+    which include a lot more casual / cheaper places 
+    (see Michelin stars by country plot below - the review overwhelmingly cover 0-star places in the UK). 
                Also, the choice of overseas restaurants is probably much more selective.", 
                Meds_country["United Kingdom"])),
     
@@ -675,12 +697,17 @@ which include a lot more casual / cheaper places (see Michelin stars by country 
     # output$Rating_country <- renderPlot({Rating_country})
     # output$Rating_cuisine <- renderPlot({Rating_cuisine})
     
+    tags$br(),
     
-    h3("Price vs rating"),
+    h2("Analyses"),
+    
+    tags$br(),
+    
+    h3("Price vs rating, all"),
     plotOutput("Price_rate"),
+    h3("Price vs rating, split out by star status"),
     plotOutput("Price_rate_split"),
-    h6(tags$div("Note: Many of the one-star restaurants are obscured by the zero-star restaurants.
-                The circles highlight the star rating groups and are calculated using a
+    h5(tags$div("The circles in the first plot highlight the star rating groups and are calculated using a
                 '95% confidence interval'",
                 tags$br(),
                 tags$br(),
@@ -704,7 +731,7 @@ which include a lot more casual / cheaper places (see Michelin stars by country 
 
     h3("Rating vs value"),
     plotOutput("Rating_val"),
-    plotOutput("Rating_val_split"),
+    plotOutput("Rating_val_split")
     
     ) # mainPanel
   #    )
