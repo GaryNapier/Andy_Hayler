@@ -339,7 +339,7 @@ Rating_cuisine <- ggplot(Tab, aes(Cuisine, Rating))+
 #cbPalette <- c("#FF0000", "#0048ff", "#28c128", "#c128b1") 
 cbPalette <- c("#00AFBB", "#E7B800", "#FC4E07", "#c128b1")
 Size <- 2
-Circle_size <- 2
+Circle_size <- 1
 Alpha <- 0.7
 Text_size <- 14
 Size_0 <- 1
@@ -394,7 +394,8 @@ Star_3 <- subset(Tab, Stars == 3)
 
 # Price vs Rating (all)
 Price_rate <- ggplot(Tab, aes(Price, Rating, colour = factor(Stars)))
-Price_rate <- Price_rate + geom_point(size = Size, alpha = Alpha)
+Price_rate <- Price_rate + geom_point(size = Size, alpha = Alpha, 
+                                      position = position_jitter(w = 5, h = 0))
 # Price_rate <- Price_rate + ggtitle("Price vs Rating, grouped by star status")
 Price_rate <- Price_rate + stat_smooth(se = T,  
                                        formula = y~poly(x, 2),
@@ -434,17 +435,17 @@ Price_rate_split <- ggplot(Tab, aes(Price, Rating, colour = factor(Stars)))+
   theme(axis.title = element_text(size=Text_size),
         axis.text = element_text(size = Text_size), 
         legend.position = "none") 
-  # labs(colour = "Stars")
 
+# ---
 
 # Price vs value (all)
+log_val_max <- Round_up(log(max(Tab$Value+1, na.rm = T)), 1)
 Price_val <- ggplot(Tab, aes(Price, log(Value+1), colour = factor(Stars)))+
-  # geom_point(size = Size, alpha = Alpha, position = "jitter")+
-  geom_point(size = Size, alpha = Alpha)+
-  ggtitle("Price vs log(Value) by stars")+
+  geom_point(size = Size, alpha = Alpha, position = position_jitter(w = 5, h = 0))+
+  # ggtitle("Price vs log(Value) by stars")+
   stat_smooth(se = T,  formula = y~poly(x, 2), method = "lm", aes(group = 1))+
   scale_colour_manual(values=cbPalette)+
-  scale_y_continuous(breaks = seq(0, log(max(Tab$Value+1, na.rm = T)), 1))+
+  scale_y_continuous(breaks = seq(0, log_val_max, 1), limits = c(0, log_val_max))+
   scale_x_continuous(breaks = seq(0, max(Tab$Price), 50)) +
   theme(axis.title = element_text(size=Text_size),
         axis.text = element_text(size = Text_size)) +
@@ -455,27 +456,25 @@ Price_val <- ggplot(Tab, aes(Price, log(Value+1), colour = factor(Stars)))+
 Price_val_split <- ggplot(Tab, aes(Price, log(Value+1), colour = factor(Stars)))+
   geom_point(size = Size, alpha = Alpha)+
   facet_wrap( ~ factor(Stars) )+
-  ggtitle("Price vs log(Value) by stars")+
   stat_smooth(se = T,  formula = y~poly(x, 2), method = "lm")+
   scale_colour_manual(values=cbPalette)+
-  scale_y_continuous(breaks = seq(0, log(max(Tab$Value+1, na.rm = T)), 1))+
+  scale_y_continuous(breaks = seq(0, log_val_max, 1), limits = c(0, log_val_max))+
   scale_x_continuous(breaks = seq(0, max(Tab$Price), 50)) +
   theme_bw()+
   theme(axis.title = element_text(size=Text_size),
         axis.text = element_text(size = Text_size), 
         legend.position = "none") 
-  # labs(colour = "Stars")
 
+# ---
 
 # Rating v log(value) (all)
 Rating_val <- ggplot(Tab, aes(Rating, log(Value+1), colour = factor(Stars)))+
-  geom_point(size = Size, alpha = Alpha, position = "jitter")+
-  # geom_point(size = Size, alpha = Alpha)+
-  ggtitle("Price vs log(Value) by stars")+
+  geom_point(size = Size, alpha = Alpha, position = position_jitter(w = 0.1, h = 0))+
   stat_smooth(se = T,  formula = y~poly(x, 2), method = "lm", aes(group = 1))+
   scale_colour_manual(values=cbPalette)+
-  scale_y_continuous(breaks = seq(0, log(max(Tab$Value+1, na.rm = T)), 1))+
-  scale_x_continuous(breaks = seq(0, max(Tab$Rating, na.rm = T), 1)) +
+  scale_y_continuous(breaks = seq(0, log_val_max, 1), limits = c(-0.5, log_val_max))+
+  scale_x_continuous(breaks = seq(0, max(Tab$Rating), 1), 
+                     limits = c(-0.5, max(Tab$Rating)+0.5))+
   theme(axis.title = element_text(size=Text_size),
         axis.text = element_text(size = Text_size)) +
   labs(colour = "Stars")+
@@ -485,7 +484,7 @@ Rating_val <- ggplot(Tab, aes(Rating, log(Value+1), colour = factor(Stars)))+
 Rating_val_split <- ggplot(Tab, aes(Rating, log(Value+1), colour = factor(Stars)))+
   geom_point(size = Size, alpha = Alpha)+
   facet_wrap( ~ factor(Stars) )+
-  ggtitle("Price vs log(Value) by stars")+
+  # ggtitle("Rating vs log(Value) by stars")+
   stat_smooth(se = T,  formula = y~poly(x, 2), method = "lm")+
   scale_colour_manual(values=cbPalette)+
   scale_y_continuous(breaks = seq(0, log(max(Tab$Value+1, na.rm = T)), 1))+
@@ -494,11 +493,7 @@ Rating_val_split <- ggplot(Tab, aes(Rating, log(Value+1), colour = factor(Stars)
   theme(axis.title = element_text(size=Text_size),
         axis.text = element_text(size = Text_size), 
         legend.position = "none") 
-  # labs(colour = "Stars")+
   
-
-
-
 
 
 # # Rating by star
@@ -587,7 +582,6 @@ ui <- fluidPage(
     )),
     
     tags$br(),
-    tags$br(),
 
     h5(tags$div(
       "A note on the ratings:", 
@@ -616,7 +610,6 @@ ui <- fluidPage(
       tags$br(),
       tags$br(),
       "Hayler pays for the restaurants himself so there should be little bias in the subjective score ('rating' from hereon).")),
-    tags$br(),
     tags$br(),
     h5(tags$div(
       "A note on prices:", 
@@ -707,27 +700,42 @@ ui <- fluidPage(
     plotOutput("Price_rate"),
     h3("Price vs rating, split out by star status"),
     plotOutput("Price_rate_split"),
-    h5(tags$div("The circles in the first plot highlight the star rating groups and are calculated using a
-                '95% confidence interval'",
+    h5(tags$div("The circles in the first plot highlight the star rating groups (0, 1, 2 or 3 Michelin stars),
+                centering on the averages",
                 tags$br(),
                 tags$br(),
-                "Comments: Here we see an interesting 'diminishing returns' affect with
-                Michelin star status. The subjective rating flattens out as the star status
-                increases.",
+                "Comments: Here there seems to be an interesting 'diminishing returns' effect overall (top plot)
+                between rating, price and Michelin star level: Hayler's rating flattens out as the price 
+                and star status increase, suggesting price or star status only predict quality to a certain level.",
                 tags$br(),
                 tags$br(),
                 "This is particularly the case with three Michelin star status - the
                 subjective rating flattens out between two and three stars, while the
-                price continues to increase (x-axis)",
+                price continues to increase.",
                 tags$br(),
                 tags$br(),
-                "However it should be noted that there is more 'uncertainty' a the three-star level
-                (as indicated by the widening confidence interval) since they have the fewest reviews."
+                "Indeed it looks as though from about £250 onwards, quality varies considerably,
+                ranging from about 4 to maximum of 10.", 
+                tags$br(),
+                tags$br(),
+                "However it should be noted that there is more uncertainty a the two and three-star levels
+                (as indicated by the widening confidence intervals - grey shading) 
+                since they have the fewest reviews."
     )),
 
-    h3("Price vs value"),
+    h3("Price vs value, all"),
     plotOutput("Price_val"),
+    h3("Price vs value, split by star status"),
     plotOutput("Price_val_split"),
+    h5(tags$div("Value has been shown here on a log scale just to tidy up the data and to show a better line of best fit 
+                (original value scale 0-100)", 
+                tags$br(), 
+                tags$br(), 
+                "Value quickly decreases the higher the price both overall and among all the star classes. 
+                The best value places seem to be below about £100 in all three star classes, 
+                the best of these being in the 0-star category, though it looks like there are many good-value 
+                1-star places."
+                )), 
 
     h3("Rating vs value"),
     plotOutput("Rating_val"),
