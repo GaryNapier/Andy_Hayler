@@ -64,7 +64,7 @@ clean_price <- function(tab){
 # some reason (after Brillat Savarin?), but hardly any score are below 10, 
 # so effectively 10 is 0 and 20 is 10.
 clean_rating <- function(tab){
-  tab$rating <- as.numeric(substr(tab$rating, 1, 2)) - 10
+  tab$rating <- as.factor(as.numeric(substr(tab$rating, 1, 2)) - 10)
   tab 
 }
 
@@ -76,6 +76,7 @@ clean_stars <- function(tab){
   x <- strsplit(x, "")
   tab$stars <- sapply(x, function(x){sum(as.numeric(x))})
   tab[is.na(tab["stars"]), "stars"] <- 0
+  tab$stars <- as.factor(tab$stars)
   tab
 }
 
