@@ -18,7 +18,6 @@
 # Deps ----
 
 library(shiny)
-library(plotly)
 
 # library(kimisc)
 
@@ -35,89 +34,14 @@ tab <- clean_data(tab)
 
 # Plots - data summary ----
 
-n_reviews <- nrow(tab)
-alpha <- 0.75
-text_sz <- 6
+# n_reviews <- nrow(tab)
+# alpha <- 0.75
+# text_sz <- 6
 
 # Barplot - number of reviews by star
-# star_plot <- plot_stars(tab)
-
-# ggplot(tab, aes(stars))+
-#   geom_bar(alpha=alpha, colour = "black", fill = "red ")+
-#   xlab("Michelin stars")+ylab("Number of reviews")+
-#   scale_y_continuous(breaks = seq(0, nrow(tab), 100), limits = c(0, nrow(tab)+10))+
-#   # stat_count(aes(y=..count..,label=..count..),geom="text",vjust=-1, hjust=1)+
-#   stat_count(aes(y=after_stat(count),
-#                  label=after_stat(count)),
-#              geom="text",vjust=-1, hjust=1)+
-#   # stat_count(aes(y=..count..,label = paste0("(", scales::percent(..prop..), ")")),
-#   stat_count(aes(y=after_stat(count),
-#                  label = paste0("(", scales::percent(after_stat(prop)), ")")),
-#              geom="text", vjust=-1, hjust=-0.25)+
-#   theme_bw()
 
 
-n_pc_table <- function(data, var, round_to = 1){
-  data %>%
-    group_by({{var}}) %>%
-    summarise(n = n()) %>%
-    mutate(
-      pc = round(
-        (n / sum(n))*100, round_to)
-    ) 
-}
-
-n_pc <- function(n, pc){
-  paste0(fmt(n), " (", pc, "%)")
-}
-
-
-summary_plot <- function(tab, var){
-  colour <- 'rgba(17, 157, 255, 0.5)'
-  # var <- {{var}}
-  tab %>%
-    n_pc_table({{ var }}) %>%
-    
-    plot_ly(x = ~{{ var }},
-    # n_pc_table(stars) %>%
-    # plot_ly(x = ~stars,
-            y = ~n,
-            type = "bar",
-            text = ~n_pc(n, pc),
-            textposition = 'outside',
-            marker = list(
-              color = colour,
-              alpha = 0.5,
-              line = list(
-                color = "black", width = 1
-              )
-            )
-    ) %>%
-    layout(yaxis = list(title = "Number of reviews"),
-           xaxis = list(title = "Number of stars"),
-           uniformtext=list(minsize=9, mode='show'))
-}
-
-summary_plot(tab, stars)
-
-tab %>% 
-  n_pc_table(rating) %>%
-  plot_ly(x = ~as.factor(rating), 
-          y = ~n, 
-          type = "bar",
-          text = ~n_pc(n, pc), 
-          textposition = 'outside',
-          marker = list(
-            color = 'rgba(17, 157, 255,0.5)',
-            alpha = 0.5, 
-            line = list(
-              color = 'rgb(8,48,107)', width = 1
-            )
-          )
-  ) %>%
-  layout(yaxis = list(title = "Number of reviews"), 
-         xaxis = list(title = "Rating"), 
-         uniformtext=list(minsize=9, mode='show'))
+SummaryPlot(tab, Stars)
 
 
 
