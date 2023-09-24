@@ -17,18 +17,18 @@ heaD <- function(x, ...){
   head(x, ...)
 }
 # Round up to nearest 10
-round_up <- function(x,to=10)
+RoundUp <- function(x,to=10)
 {
   to*(x%/%to + as.logical(x%%to))
 }
 # Remove random n of rows
-remove_rows <- function(data, col, value, n){
+RemoveRows <- function(data, col, value, n){
   data[-(sample(as.numeric(row.names(subset(data, col == value) )), n)), ]
 }
 # Add comma to numbers
 fmt <- function(x, ...){format(x, big.mark=",",scientific=FALSE, ...)}
 
-max_hist <- function(ggplot_hist){
+MaxHist <- function(ggplot_hist){
   max(ggplot_build(ggplot_hist)$data[[1]]$count)
 }
 
@@ -37,7 +37,7 @@ max_hist <- function(ggplot_hist){
 # Parse data from site and convert to table
 # Not sure exactly how this code works, but returns correct table
 # Uses XML package
-parse_data <- function(URL){
+ParseData <- function(URL){
   lines <- readLines(URL)
   
   lines <- gsub("<span></span>", 1, lines)
@@ -48,15 +48,15 @@ parse_data <- function(URL){
 
 # Clean data ----
 
-clean_headers <- function(tab){
+CleanHeaders <- function(tab){
   dplyr::rename(tab, Restaurant = `Name of restaurant`)
 }
 
 # Price
-clean_price <- function(tab){
+CleanPrice <- function(tab){
   # Price
   tab$Price <- as.numeric(gsub(".([0-9]+).*$", "\\1", tab$Price))
-  tab$Price <- round_up(tab$Price) # round up 
+  tab$Price <- RoundUp(tab$Price) # round up 
   tab
 }
 
@@ -64,26 +64,32 @@ clean_price <- function(tab){
 # Subtract 10 from rating because Hayler changed scores from /10 to /20 for 
 # some reason (after Brillat Savarin?), but hardly any score are below 10, 
 # so effectively 10 is 0 and 20 is 10.
-clean_rating <- function(tab){
+CleanRating <- function(tab){
   tab$Rating <- as.numeric(substr(tab$Rating, 1, 2)) - 10
   tab 
 }
 
 # Stars
-clean_stars <- function(tab){
+CleanStars <- function(tab){
+  
   x <- tab$Stars
   x <- gsub(" ", "", x)
   x <- gsub("\n", "", x)
   x <- strsplit(x, "")
   tab$Stars <- sapply(x, function(x){sum(as.numeric(x))})
-  tab[is.na(tab["Stars"]), "Stars"] <- 0
-  tab$Stars <- as.factor(tab$Stars)
+  
+  tab$Stars <- ifelse(is.na(tab$Stars), "0", 
+                      ifelse(tab$Stars == 1, "*", 
+                             ifelse(tab$Stars == 2, "**", 
+                                    ifelse(tab$Stars == 3, "***", tab$Stars))))
+  
+  tab$Stars <- factor(tab$Stars, levels = c("0", "*", "**", "***"))
   tab
 }
 
 # Value
 # Calculate as rating / price
-clean_value <- function(tab){
+CleanValue <- function(tab){
   tab$Value <- tab$Rating / tab$Price
   tab$Value <- signif((tab$Value / max(tab$Value[!is.na(tab$Value)]) ) * 100, 2)
   tab
@@ -91,7 +97,7 @@ clean_value <- function(tab){
 
 # Location
 # Parse name of restaurant, city and country 
-clean_location <- function(tab){
+CleanLocation <- function(tab){
   x <- tab$Restaurant
   x <- strsplit(x, ",")
   
@@ -108,7 +114,7 @@ clean_location <- function(tab){
 
 # Cuisine
 # Group together cuisines
-clean_cuisine <- function(tab){
+CleanCuisine <- function(tab){
   tab$Cuisine <- ifelse(tab$Cuisine == "Fish & Chips", "British", tab$Cuisine)
   european <- c("Austrian", "Czech", "Danish", "Greek", "Hungarian", "Norwegian", "Russian", 
                 "Portuguese", "Swedish")
@@ -125,7 +131,7 @@ clean_cuisine <- function(tab){
 }
 
 # Country
-clean_country <- function(tab){
+CleanCountry <- function(tab){
   uk <- c(" Channel Islands", " Jersey", " Man", " United Kingdom")
   tab$Country <- ifelse(tab$Country %in% uk, "United Kingdom", tab$Country)
   usa <- c(" Colorado", " Colorado ", " Florida ", " Hawaii ", " Texas ", " United States")
@@ -138,60 +144,76 @@ clean_country <- function(tab){
 }
 
 # Run all clean functions
-clean_data <- function(tab){
-  tab %>% clean_headers() %>%
-    clean_price() %>%
-    clean_rating() %>%
-    clean_stars() %>% 
-    clean_value() %>%
-    clean_location() %>%
-    clean_cuisine() %>%
-    clean_country()
+CleanData <- function(tab){
+  print("Cleaning data")
+  tab %>% CleanHeaders() %>%
+    CleanPrice() %>%
+    CleanRating() %>%
+    CleanStars() %>% 
+    CleanValue() %>%
+    CleanLocation() %>%
+    CleanCuisine() %>%
+    CleanCountry()
 }
 
 # Wrangle data ----
 
-n_pc_table <- function(df, var, round_to = 1){
-  df %>%
-    group_by({{var}}) %>%
+NPcTable <- function(df, var, round_to = 1){
+  data.frame(
+    df %>%
+    # group_by({{var}}) %>%
+      group_by(.data[[var]]) %>%
     summarise(n = n()) %>%
     mutate(
       pc = round(
         (n / sum(n))*100, round_to)
-    ) 
+    )
+  )
 }
 
-n_pc <- function(n, pc){
+NPc <- function(n, pc){
   paste0(fmt(n), " (", pc, "%)")
 }
 
 # Summary plots ----
 
-SummaryPlot <- function(df, var, colour = 'rgba(17, 157, 255, 0.5)'){
-  # sum_df <- df %>% n_pc_table({{var}}) 
-  df %>% n_pc_table({{var}}) %>%
-  # print(sum_df)
-    plot_ly(
-      # sum_df,
-      x = enquo(var),
-      y = ~n,
-      type = "bar",
-      text = ~n_pc(n, pc),
-      textposition = 'outside',
-      marker = list(
-        color = colour,
-        alpha = 0.5,
-        line = list(
-          color = "black", width = 1
-        )
-      )
-    ) %>%
-    layout(yaxis = list(title = "Number of reviews"),
-           xaxis = list(title = "Number of stars"),
-           uniformtext=list(minsize=9, mode='show'))
+# Summarise the n of each group in a var
+
+SummaryPlot <- function(dt, var, colour = 'rgba(17, 157, 255, 0.5)'){
+  var_prime <- deparse(substitute(var))
+  dt[, .N, by = var_prime] %>%
+    # plot_ly(
+    #   # x = ~enquo(var),
+    #   # x = ~.data[[var]],
+    #   x = enquo(var),
+    #   y = ~n,
+    #   type = "bar",
+    #   text = ~NPc(n, pc),
+    #   textposition = 'outside',
+    #   marker = list(
+    #     color = colour,
+    #     alpha = 0.5,
+    #     line = list(
+    #       color = "black", width = 1
+    #     )
+    #   )
+    # )
+  plot_ly(
+    x = enquo(var),
+    y = ~N,
+    type = "bar", 
+    text = ~NPc(n, pc)
+  )
+  
+    # layout(yaxis = list(title = "Number of reviews"),
+    #        xaxis = list(title = "Number of stars"),
+    #        uniformtext=list(minsize=9, mode='show'))
 }
 
-# SummaryPlot(tab, Stars)
+
+
+
+SummaryPlot(tab, Stars)
 
 
 
