@@ -158,62 +158,54 @@ CleanData <- function(tab){
 
 # Wrangle data ----
 
-NPcTable <- function(df, var, round_to = 1){
-  data.frame(
-    df %>%
-    # group_by({{var}}) %>%
-      group_by(.data[[var]]) %>%
-    summarise(n = n()) %>%
-    mutate(
-      pc = round(
-        (n / sum(n))*100, round_to)
-    )
-  )
+Pc <- function(x){
+  round(x / sum(x)*100, 1)
+}
+
+NPcTable <- function(dt, var, round_to = 1){
+  dt[, .N, by = var][, pc := Pc(N), ]
 }
 
 NPc <- function(n, pc){
   paste0(fmt(n), " (", pc, "%)")
 }
 
+
 # Summary plots ----
 
 # Summarise the n of each group in a var
-
-SummaryPlot <- function(dt, var, colour = 'rgba(17, 157, 255, 0.5)'){
+SummaryPlot <- function(dt, 
+                        var, 
+                        colour = 'rgba(17, 157, 255, 0.5)', 
+                        textangle = 315, 
+                        alpha = 0.5){
   var_prime <- deparse(substitute(var))
-  dt[, .N, by = var_prime] %>%
-    # plot_ly(
-    #   # x = ~enquo(var),
-    #   # x = ~.data[[var]],
-    #   x = enquo(var),
-    #   y = ~n,
-    #   type = "bar",
-    #   text = ~NPc(n, pc),
-    #   textposition = 'outside',
-    #   marker = list(
-    #     color = colour,
-    #     alpha = 0.5,
-    #     line = list(
-    #       color = "black", width = 1
-    #     )
-    #   )
-    # )
-  plot_ly(
-    x = enquo(var),
-    y = ~N,
-    type = "bar", 
-    text = ~NPc(n, pc)
-  )
-  
-    # layout(yaxis = list(title = "Number of reviews"),
-    #        xaxis = list(title = "Number of stars"),
-    #        uniformtext=list(minsize=9, mode='show'))
+  NPcTable(dt, var_prime) %>%
+    plot_ly(
+      x = enquo(var),
+      y = ~N,
+      type = "bar",
+      text = ~NPc(N, pc),
+      textangle = textangle,
+      textposition = 'outside',
+      marker = list(
+        color = colour,
+        alpha = alpha,
+        line = list(
+          color = "black", width = 1
+        )
+      )
+    ) %>%
+    layout(yaxis = list(title = "Number of reviews"),
+           uniformtext=list(minsize=9, mode='show'))
 }
 
+# SummaryPlot(tab, Stars, textangle = 0)
+# SummaryPlot(tab, Rating)
+# SummaryPlot(tab, Cuisine)
+# SummaryPlot(tab, Country)
 
 
-
-SummaryPlot(tab, Stars)
 
 
 
